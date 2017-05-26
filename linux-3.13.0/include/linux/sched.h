@@ -53,7 +53,8 @@ struct sched_param {
 #include <linux/llist.h>
 #include <linux/uidgid.h>
 #include <linux/gfp.h>
-#include <linux/idr.h>
+#include <linux/types.h>
+#include <linux/list.h>
 
 #include <asm/processor.h>
 
@@ -220,6 +221,7 @@ extern rwlock_t tasklist_lock;
 extern spinlock_t mmlist_lock;
 
 struct task_struct;
+struct slave_thread;
 
 #ifdef CONFIG_PROVE_RCU
 extern int lockdep_tasklist_lock_is_held(void);
@@ -1051,12 +1053,19 @@ enum perf_event_task_context {
 	perf_nr_task_contexts,
 };
 
+struct slave_thread {
+	struct list_head list;
+	pid_t slave_pid;
+};
+
 struct task_struct {
 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
 	void *stack;
 	atomic_t usage;
 	unsigned int flags;	/* per process flags, defined below */
 	unsigned int ptrace;
+	struct slave_thread *slave_pids_list;
+
 
 #ifdef CONFIG_SMP
 	struct llist_node wake_entry;
@@ -2836,8 +2845,3 @@ static inline unsigned long rlimit_max(unsigned int limit)
 }
 
 #endif
-//Map datastructure to store mvee master task id (of type pid_t) and the slave ids associated (pointer to list of  pid_t)
-// with the master task id in mvee context
-struct idr associated_threads;
-idr_init(&associated_threads);
-
