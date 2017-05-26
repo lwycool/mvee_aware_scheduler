@@ -2,6 +2,8 @@
 #include <linux/types.h>
 #include <linux/list.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
+#include <linux/idr.h>
 
 /*-----------------------------------------------------------------------------
     struct for associated mvee thread ids which will be used by the scheduler
@@ -29,6 +31,11 @@ asmlinkage long sys_mveethread(pid_t master_pid, pid_t* slave_pids, int len) {
         list_add(&(tmp->list), &(slave_pids_list.list));
         printk("added tmp object to the list");
     }
+
+    //update the scheduler datastructure with this data
+    int ret_pid = idr_alloc(&associated_threads, (void *)slave_pids_list,master_pid, (master_pid + 1), GFP_KERNEL);
+    //$TODO$ handle -ENOMEM response from ida_simple_get
+    printk("[[%d]] is the map key returned by ida_simple_get", ret_pid);
     printk("The loop has finished. Returning from syscall");
     //$TODO save the master_pid and the slave_pids_list which is associated with this master_pid into scheduler
     return 0;

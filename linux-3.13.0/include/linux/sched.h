@@ -53,6 +53,7 @@ struct sched_param {
 #include <linux/llist.h>
 #include <linux/uidgid.h>
 #include <linux/gfp.h>
+#include <linux/idr.h>
 
 #include <asm/processor.h>
 
@@ -2835,3 +2836,8 @@ static inline unsigned long rlimit_max(unsigned int limit)
 }
 
 #endif
+//Map datastructure to store mvee master task id (of type pid_t) and the slave ids associated (pointer to list of  pid_t)
+// with the master task id in mvee context
+struct idr associated_threads;
+idr_init(&associated_threads);
+
