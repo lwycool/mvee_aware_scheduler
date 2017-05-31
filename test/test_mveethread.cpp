@@ -22,7 +22,7 @@ int main()
 //        }
     long int amma = syscall(318, master_pid, slave_pids.data(), 3);
 
-//         long int amma = syscall(318); // 314 is the number of sys_hello line in `syscall_64.tbl`
+//         long int amma = syscall(318); // 318 is the number of sys_hello line in `syscall_64.tbl`
 
     printf("System call sys_hello returned %ld\n", amma);
     return 0;
