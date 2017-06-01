@@ -20,6 +20,8 @@
  *  Copyright (C) 2007 Red Hat, Inc., Peter Zijlstra <pzijlstr@redhat.com>
  */
 
+#include <linux/types.h>
+
 #include <linux/latencytop.h>
 #include <linux/sched.h>
 #include <linux/cpumask.h>
@@ -33,6 +35,9 @@
 #include <trace/events/sched.h>
 
 #include "sched.h"
+#include "../../include/linux/sched.h"
+#include "../../include/linux/list.h"
+#include "../../include/linux/types.h"
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -4528,6 +4533,29 @@ preempt:
 		set_last_buddy(se);
 }
 
+static void bump_up_slaves(struct task_struct *p, struct rq *rq){
+    if(p->slave_pids_list == NULL) return;
+    else{
+        // this thread is a master thread of mvee slaves
+        struct slave_thread *i;
+
+        list_for_each_entry(i, &(p->slave_pids_list->list), list){
+            struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
+
+			struct cfs_rq * local_rq= task_cfs_rq(slave_ts);
+			//local_rq->min_vruntime = 0;
+			//local_rq->min_vruntime_copy = 0;
+			slave_ts->se.vruntime = 0;
+
+			check_preempt_curr(rq_of(local_rq), slave_ts,0); //requires enabling smp?
+
+
+
+        }
+
+    }
+}
+
 static struct task_struct *pick_next_task_fair(struct rq *rq)
 {
 	struct task_struct *p;
@@ -4546,6 +4574,9 @@ static struct task_struct *pick_next_task_fair(struct rq *rq)
 	p = task_of(se);
 	if (hrtick_enabled(rq))
 		hrtick_start_fair(rq, p);
+
+    //entry point to new code from orig scheduler
+    bump_up_slaves(p,rq);
 
 	return p;
 }
