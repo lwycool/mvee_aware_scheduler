@@ -4541,15 +4541,15 @@ static void bump_up_slaves(struct task_struct *p, struct rq *rq){
 
         list_for_each_entry(i, &(p->slave_pids_list->list), list){
             struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
-
-			struct cfs_rq * local_rq= task_cfs_rq(slave_ts);
+            struct cfs_rq * local_crq= task_cfs_rq(slave_ts);
+            struct rq* rqCur= rq_of(local_crq);
+            dequeue_task_fair(rq, slave_ts,0);
 			//local_rq->min_vruntime = 0;
 			//local_rq->min_vruntime_copy = 0;
 			slave_ts->se.vruntime = 0;
+            enqueue_task_fair(rq, slave_ts,0);
 
-			check_preempt_curr(rq_of(local_rq), slave_ts,0); //requires enabling smp?
-
-
+			//check_preempt_curr(rq_of(local_rq), slave_ts,0); //requires enabling smp?
 
         }
 
