@@ -15,7 +15,7 @@ asmlinkage long sys_mveethread(pid_t master_pid, pid_t* slave_pids, int len) {
     struct slave_thread *tmp;
     struct slave_thread slave_pids_list;
     printk(KERN_ALERT "Received data for mvee \n");
-    printk(KERN_ALERT "[[%d]] is the master pid", master_pid);
+    printk(KERN_ALERT "[[%d]] is the master pid and has [[%d]] number of slave threads", master_pid, len);
     INIT_LIST_HEAD(&slave_pids_list.list);
     printk(KERN_ALERT "inited slave pids list");
     for (i = 0; i < len; i++)
@@ -34,6 +34,8 @@ asmlinkage long sys_mveethread(pid_t master_pid, pid_t* slave_pids, int len) {
     printk(KERN_ALERT "[[%d]] is the map key returned by pid of the current task", current_thread_info()->task->pid);
     //$TODO save the master_pid and the slave_pids_list which is associated with this master_pid into scheduler
     current_thread_info()->task->slave_pids_list = &slave_pids_list;
+    printk(KERN_ALERT "[[%d]] current_thread_info pid, tgid [[%d]] ",current_thread_info()->task->pid, current_thread_info()->task->tgid);
+
     printk(KERN_ALERT "The loop has finished. Returning from syscall");
     return 0;
 }
