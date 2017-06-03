@@ -4534,41 +4534,41 @@ preempt:
 }
 
 static void bump_up_slaves(struct task_struct *p, struct rq *rq){
-	printk(KERN_ALERT "Entered bump up slaves");
-	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid", p->pid);
+	printk(KERN_ALERT "Entered bump up slaves \n");
+	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid \n", p->pid);
 
 	if(p->slave_pids_list == NULL) return;
     else{
-		printk(KERN_ALERT "THread slave_pids_list not NULL");
+		printk(KERN_ALERT "THread slave_pids_list not NULL \n");
 
 		// this thread is a master thread of mvee slaves
         struct slave_thread *i;
 
         list_for_each_entry(i, &(p->slave_pids_list->list), list){
-			printk(KERN_ALERT "Iterating through slave list");
+			printk(KERN_ALERT "Iterating through slave list \n");
 
 			struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
-			printk(KERN_ALERT "got slave_ts");
+			printk(KERN_ALERT "got slave_ts  \n");
             struct cfs_rq * local_crq= task_cfs_rq(slave_ts);
-			printk(KERN_ALERT "got local_crq");
+			printk(KERN_ALERT "got local_crq \n");
 
             struct rq* rqCur= rq_of(local_crq);
-			printk(KERN_ALERT "got rqcur");
+			printk(KERN_ALERT "got rqcur \n");
 
 			dequeue_task_fair(rq, slave_ts,0);
-			printk(KERN_ALERT "dequeueing [[%d]] slave thread", slave_ts->pid);
+			printk(KERN_ALERT "dequeueing [[%d]] slave thread \n", slave_ts->pid);
 
 			//local_rq->min_vruntime = 0;
 			//local_rq->min_vruntime_copy = 0;
 			slave_ts->se.vruntime = 0;
-			printk(KERN_ALERT "vruntime set to 0");
+			printk(KERN_ALERT "vruntime set to 0 \n");
 
 			enqueue_task_fair(rq, slave_ts,0);
-			printk(KERN_ALERT "enqueueing [[%d]] slave thread", slave_ts->pid);
+			printk(KERN_ALERT "enqueueing [[%d]] slave thread \n", slave_ts->pid);
 			if(local_crq->rb_leftmost == slave_ts->se.run_node) {
-				printk(KERN_ALERT "true");
+				printk(KERN_ALERT "isleftmost true \n");
 			} else {
-				printk(KERN_ALERT "false");
+				printk(KERN_ALERT "isleftmost false \n");
 			}
 			//check_preempt_curr(rq_of(local_rq), slave_ts,0); //requires enabling smp?
         }
@@ -4596,7 +4596,9 @@ static struct task_struct *pick_next_task_fair(struct rq *rq)
 		hrtick_start_fair(rq, p);
 
     //entry point to new code from orig scheduler
+	printk(KERN_ALERT "before bumping slaves \n");
     bump_up_slaves(p,rq);
+	printk(KERN_ALERT "after bumping slaves \n");
 
 	return p;
 }

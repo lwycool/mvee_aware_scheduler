@@ -15,27 +15,27 @@ asmlinkage long sys_mveethread(pid_t master_pid, pid_t* slave_pids, int len) {
     struct slave_thread *tmp;
     struct slave_thread slave_pids_list;
     printk(KERN_ALERT "Received data for mvee \n");
-    printk(KERN_ALERT "[[%d]] is the master pid and has [[%d]] number of slave threads", master_pid, len);
+    printk(KERN_ALERT "[[%d]] is the master pid and has [[%d]] number of slave threads \n", master_pid, len);
     INIT_LIST_HEAD(&slave_pids_list.list);
-    printk(KERN_ALERT "inited slave pids list");
+    printk(KERN_ALERT "inited slave pids list \n");
     for (i = 0; i < len; i++)
     {
         tmp= (struct slave_thread *)kmalloc(sizeof(struct slave_thread), GFP_KERNEL);
-        printk(KERN_ALERT "returned from malloc");
+        printk(KERN_ALERT "returned from malloc \n");
         tmp->slave_pid=slave_pids[i];
-        printk(KERN_ALERT "assigned slave pid to tmp object");
+        printk(KERN_ALERT "assigned slave pid to tmp object \n");
         list_add(&(tmp->list), &(slave_pids_list.list));
-        printk(KERN_ALERT "added tmp object to the list");
+        printk(KERN_ALERT "added tmp object to the list \n");
     }
 
     //update the scheduler datastructure with this data
 //    int ret_pid = idr_alloc(&associated_threads, (void *)slave_pids_list,master_pid, (master_pid + 1), GFP_KERNEL);
     //$TODO$ handle -ENOMEM response from ida_simple_get
-    printk(KERN_ALERT "[[%d]] is the map key returned by pid of the current task", current_thread_info()->task->pid);
+    struct task_struct* master_ts = find_task_by_vpid(master_pid);
+    printk(KERN_ALERT "Fetching task struct related to master_pid [[%d]] \n", master_ts->pid);
     //$TODO save the master_pid and the slave_pids_list which is associated with this master_pid into scheduler
-    current_thread_info()->task->slave_pids_list = &slave_pids_list;
-    printk(KERN_ALERT "[[%d]] current_thread_info pid, tgid [[%d]] ",current_thread_info()->task->pid, current_thread_info()->task->tgid);
-
-    printk(KERN_ALERT "The loop has finished. Returning from syscall");
+    master_ts->slave_pids_list = &slave_pids_list;
+    printk(KERN_ALERT "[[%d]] is find_task_by_vpid pid, and tgid is [[%d]] \n", master_ts->pid, master_ts->tgid);
+    printk(KERN_ALERT "The loop has finished. Returning from syscall \n");
     return 0;
 }
