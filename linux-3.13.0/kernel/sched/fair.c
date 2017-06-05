@@ -4555,7 +4555,7 @@ static void bump_up_slaves(struct task_struct *p, struct rq *rq){
             struct rq* rqCur= rq_of(local_crq);
 			printk(KERN_ALERT "got rqcur \n");
 
-			dequeue_task_fair(rq, slave_ts,0);
+			dequeue_task_fair(rqCur, slave_ts,0);
 			printk(KERN_ALERT "dequeueing [[%d]] slave thread \n", slave_ts->pid);
 
 			//local_rq->min_vruntime = 0;
@@ -4563,9 +4563,9 @@ static void bump_up_slaves(struct task_struct *p, struct rq *rq){
 			slave_ts->se.vruntime = 0;
 			printk(KERN_ALERT "vruntime set to 0 \n");
 
-			enqueue_task_fair(rq, slave_ts,0);
+			enqueue_task_fair(rqCur, slave_ts,0);
 			printk(KERN_ALERT "enqueueing [[%d]] slave thread \n", slave_ts->pid);
-			if(local_crq->rb_leftmost == slave_ts->se.run_node) {
+			if(local_crq->rb_leftmost == &slave_ts->se.run_node) {
 				printk(KERN_ALERT "isleftmost true \n");
 			} else {
 				printk(KERN_ALERT "isleftmost false \n");
