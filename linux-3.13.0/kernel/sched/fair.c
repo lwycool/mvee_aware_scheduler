@@ -21,6 +21,7 @@
  */
 
 #include <linux/types.h>
+#include "../../include/linux/printk.h"
 
 #include <linux/latencytop.h>
 #include <linux/sched.h>
