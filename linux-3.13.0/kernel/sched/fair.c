@@ -4607,7 +4607,7 @@ static void bump_up_slaves2(struct task_struct *p){
 			struct sched_entity *se;
 
 			if (!local_crq->nr_running)
-				return NULL;
+				return;
 
 			se = &slave_ts->se;
 			set_next_entity(local_crq, se);
