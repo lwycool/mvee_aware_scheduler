@@ -4577,6 +4577,48 @@ static void bump_up_slaves(struct task_struct *p, struct rq *rq){
     }
 }
 
+//This version approximatley evaluates pick next task on the runqueues the slaves are on while forcin the slave to be
+// picked
+static void bump_up_slaves2(struct task_struct *p){
+//	printk(KERN_ALERT "Entered bump up slaves2 \n");
+//	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid \n", p->pid);
+
+	if(p->slave_pids_list == NULL) return;
+	else{
+//		printk(KERN_ALERT "THread slave_pids_list not NULL \n");
+
+		// this thread is a master thread of mvee slaves
+		struct slave_thread *i;
+
+		list_for_each_entry(i, &(p->slave_pids_list->list), list){
+//			printk(KERN_ALERT "Iterating through slave list \n");
+
+			struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
+//			printk(KERN_ALERT "got slave_ts  \n");
+			struct cfs_rq * local_crq= task_cfs_rq(slave_ts);
+//			printk(KERN_ALERT "got local_crq \n");
+
+			struct rq* rqCur= rq_of(local_crq);
+//			printk(KERN_ALERT "got rqcur \n");
+
+
+			slave_ts->se.vruntime = 0;
+//			printk(KERN_ALERT "vruntime set to 0 \n");
+			struct sched_entity *se;
+
+			if (!local_crq->nr_running)
+				return NULL;
+
+			se = &slave_ts->se;
+			set_next_entity(local_crq, se);
+
+			if (hrtick_enabled(rqCur))
+				hrtick_start_fair(rqCur, slave_ts);
+		}
+
+	}
+}
+
 static struct task_struct *pick_next_task_fair(struct rq *rq)
 {
 	struct task_struct *p;
@@ -4595,11 +4637,11 @@ static struct task_struct *pick_next_task_fair(struct rq *rq)
 	p = task_of(se);
 	if (hrtick_enabled(rq))
 		hrtick_start_fair(rq, p);
-	
+
     //entry point to new code from orig scheduler
-	printk(KERN_ALERT "before bumping slaves \n");
-    bump_up_slaves(p,rq);
-	printk(KERN_ALERT "after bumping slaves \n");
+//	printk(KERN_ALERT "before bumping slaves \n");
+    bump_up_slaves2(p);
+//	printk(KERN_ALERT "after bumping slaves \n");
 
 	return p;
 }
