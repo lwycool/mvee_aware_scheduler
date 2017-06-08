@@ -4592,7 +4592,7 @@ static void bump_up_slaves2(struct task_struct *p){
 		struct task_struct *slave_ts;
 		struct sched_entity *se;
 		struct cfs_rq *local_crq;
-		struct rq *rqCur;
+		//struct rq *rqCur;
 
 		list_for_each_entry(i, &(p->slave_pids_list->list), list){
 			slave_ts = find_task_by_vpid(i->slave_pid);
@@ -4603,8 +4603,8 @@ static void bump_up_slaves2(struct task_struct *p){
 			//rqCur = rq_of(local_crq);
 //			printk(KERN_ALERT "got rqcur \n");
 
-			if (have_not_printed)
-				printk_deferred("master_tgid: %d, slave_pid: %d, se_minvruntime: %d, cfsrq_nrrunning: %d \n", p->tgid,i->slave_pid,se->vruntime,local_crq->min_vruntime);
+			if (have_not_printed){
+				printk_deferred("master_tgid: %d, slave_pid: %d, se_minvruntime: %llu, cfsrq_nrrunning: %llu \n", p->tgid,i->slave_pid,se->vruntime,local_crq->min_vruntime);
 			have_not_printed=0;
 			}
 			se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
