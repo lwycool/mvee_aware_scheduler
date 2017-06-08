@@ -39,7 +39,9 @@
 #include "../../include/linux/sched.h"
 #include "../../include/linux/list.h"
 #include "../../include/linux/types.h"
+#include "../../include/linux/printk.h"
 
+int have_not_printed =1;
 /*
  * Targeted preemption latency for CPU-bound tasks:
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
@@ -4534,86 +4536,89 @@ preempt:
 		set_last_buddy(se);
 }
 
-static void bump_up_slaves(struct task_struct *p, struct rq *rq){
-	printk(KERN_ALERT "Entered bump up slaves \n");
-	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid \n", p->pid);
+//static void bump_up_slaves(struct task_struct *p, struct rq *rq){
+//	printk(KERN_ALERT "Entered bump up slaves \n");
+//	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid \n", p->pid);
+//
+//	if(p->slave_pids_list == NULL) return;
+//    else{
+//		printk(KERN_ALERT "THread slave_pids_list not NULL \n");
+//
+//		// this thread is a master thread of mvee slaves
+//        struct slave_thread *i;
+//
+//        list_for_each_entry(i, &(p->slave_pids_list->list), list){
+//			printk(KERN_ALERT "Iterating through slave list \n");
+//
+//			struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
+//			printk(KERN_ALERT "got slave_ts  \n");
+//            struct cfs_rq * local_crq= task_cfs_rq(slave_ts);
+//			printk(KERN_ALERT "got local_crq \n");
+//
+//            struct rq* rqCur= rq_of(local_crq);
+//			printk(KERN_ALERT "got rqcur \n");
+//
+//			dequeue_task_fair(rqCur, slave_ts,0);
+//			printk(KERN_ALERT "dequeueing [[%d]] slave thread \n", slave_ts->pid);
+//
+//			//local_rq->min_vruntime = 0;
+//			//local_rq->min_vruntime_copy = 0;
+//			slave_ts->se.vruntime = 0;
+//			printk(KERN_ALERT "vruntime set to 0 \n");
+//
+//			enqueue_task_fair(rqCur, slave_ts,0);
+//			printk(KERN_ALERT "enqueueing [[%d]] slave thread \n", slave_ts->pid);
+//			if(local_crq->rb_leftmost == &slave_ts->se.run_node) {
+//				printk(KERN_ALERT "isleftmost true \n");
+//			} else {
+//				printk(KERN_ALERT "isleftmost false \n");
+//			}
+//			//check_preempt_curr(rq_of(local_rq), slave_ts,0); //requires enabling smp?
+//        }
+//
+//    }
+//}
 
-	if(p->slave_pids_list == NULL) return;
-    else{
-		printk(KERN_ALERT "THread slave_pids_list not NULL \n");
-
-		// this thread is a master thread of mvee slaves
-        struct slave_thread *i;
-
-        list_for_each_entry(i, &(p->slave_pids_list->list), list){
-			printk(KERN_ALERT "Iterating through slave list \n");
-
-			struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
-			printk(KERN_ALERT "got slave_ts  \n");
-            struct cfs_rq * local_crq= task_cfs_rq(slave_ts);
-			printk(KERN_ALERT "got local_crq \n");
-
-            struct rq* rqCur= rq_of(local_crq);
-			printk(KERN_ALERT "got rqcur \n");
-
-			dequeue_task_fair(rqCur, slave_ts,0);
-			printk(KERN_ALERT "dequeueing [[%d]] slave thread \n", slave_ts->pid);
-
-			//local_rq->min_vruntime = 0;
-			//local_rq->min_vruntime_copy = 0;
-			slave_ts->se.vruntime = 0;
-			printk(KERN_ALERT "vruntime set to 0 \n");
-
-			enqueue_task_fair(rqCur, slave_ts,0);
-			printk(KERN_ALERT "enqueueing [[%d]] slave thread \n", slave_ts->pid);
-			if(local_crq->rb_leftmost == &slave_ts->se.run_node) {
-				printk(KERN_ALERT "isleftmost true \n");
-			} else {
-				printk(KERN_ALERT "isleftmost false \n");
-			}
-			//check_preempt_curr(rq_of(local_rq), slave_ts,0); //requires enabling smp?
-        }
-
-    }
-}
-
-//This version approximatley evaluates pick next task on the runqueues the slaves are on while forcin the slave to be
-// picked
 static void bump_up_slaves2(struct task_struct *p){
 //	printk(KERN_ALERT "Entered bump up slaves2 \n");
 //	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid \n", p->pid);
 
-	if(p->slave_pids_list == NULL) return;
+	if(!(p->slave_pids_list)) return;
 	else{
 //		printk(KERN_ALERT "THread slave_pids_list not NULL \n");
 
 		// this thread is a master thread of mvee slaves
 		struct slave_thread *i;
+		struct task_struct *slave_ts;
+		struct sched_entity *se;
+		struct cfs_rq *local_crq;
+		struct rq *rqCur;
 
 		list_for_each_entry(i, &(p->slave_pids_list->list), list){
-//			printk(KERN_ALERT "Iterating through slave list \n");
-
-			struct task_struct* slave_ts = find_task_by_vpid(i->slave_pid);
+			slave_ts = find_task_by_vpid(i->slave_pid);
+			se = &slave_ts->se;
 //			printk(KERN_ALERT "got slave_ts  \n");
-			struct cfs_rq * local_crq= task_cfs_rq(slave_ts);
+			local_crq = task_cfs_rq(slave_ts);
 //			printk(KERN_ALERT "got local_crq \n");
-
-			struct rq* rqCur= rq_of(local_crq);
+			//rqCur = rq_of(local_crq);
 //			printk(KERN_ALERT "got rqcur \n");
 
+			if (have_not_printed)
+				printk_deferred("master_tgid: %d, slave_pid: %d, se_minvruntime: %d, cfsrq_nrrunning: %d \n", p->tgid,i->slave_pid,se->vruntime,local_crq->min_vruntime);
+			have_not_printed=0;
+			}
+			se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
+			local_crq->next = se; //are there fields of se that need updating?
+			//if local_crq = getcrq(p), basically schedules slave after master on this cpu. Would need to touch load balancer to fix this
 
-			slave_ts->se.vruntime = 0;
 //			printk(KERN_ALERT "vruntime set to 0 \n");
-			struct sched_entity *se;
-
-			if (!local_crq->nr_running)
-				return;
-
-			se = &slave_ts->se;
-			set_next_entity(local_crq, se);
-
-			if (hrtick_enabled(rqCur))
-				hrtick_start_fair(rqCur, slave_ts);
+//			if (!local_crq->nr_running)
+//				return;
+//
+//			set_next_entity(local_crq, se);
+//
+//			if (hrtick_enabled(rqCur))
+//				hrtick_start_fair(rqCur, slave_ts);
 		}
 
 	}
