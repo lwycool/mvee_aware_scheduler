@@ -41,7 +41,7 @@
 #include "../../include/linux/types.h"
 #include "../../include/linux/printk.h"
 
-int have_not_printed =1;
+int have_not_printed =0;
 /*
  * Targeted preemption latency for CPU-bound tasks:
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
@@ -4579,7 +4579,7 @@ preempt:
 //    }
 //}
 
-static void bump_up_slaves2(struct task_struct *p){
+static void bump_up_slaves2(struct task_struct *p, 	struct cfs_rq *cfs_rq){
 //	printk(KERN_ALERT "Entered bump up slaves2 \n");
 //	printk(KERN_ALERT "bump_up_slaves [[%d]] is the master pid \n", p->pid);
 
@@ -4603,13 +4603,15 @@ static void bump_up_slaves2(struct task_struct *p){
 			//rqCur = rq_of(local_crq);
 //			printk(KERN_ALERT "got rqcur \n");
 
-			if (have_not_printed){
-				printk_deferred("master_tgid: %d, slave_pid: %d, se_minvruntime: %llu, cfsrq_nrrunning: %llu \n", p->tgid,i->slave_pid,se->vruntime,local_crq->min_vruntime);
-			have_not_printed=0;
+			if (local_crq != cfs_rq && local_crq->curr != se) { //slave and master not on same cpu
+				se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
+				local_crq->next = se; //are there fields of se that need updating? does this need lock
+
 			}
-			se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
-			local_crq->next = se; //are there fields of se that need updating?
-			//if local_crq = getcrq(p), basically schedules slave after master on this cpu. Would need to touch load balancer to fix this
+			if (have_not_printed%100==0){
+				printk_deferred("master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d, slave is running?: %d \n", p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq != cfs_rq , local_crq->curr != se);
+			}
+			have_not_printed++;
 
 //			printk(KERN_ALERT "vruntime set to 0 \n");
 //			if (!local_crq->nr_running)
@@ -4645,7 +4647,7 @@ static struct task_struct *pick_next_task_fair(struct rq *rq)
 
     //entry point to new code from orig scheduler
 //	printk(KERN_ALERT "before bumping slaves \n");
-    bump_up_slaves2(p);
+    bump_up_slaves2(p, cfs_rq);
 //	printk(KERN_ALERT "after bumping slaves \n");
 
 	return p;
