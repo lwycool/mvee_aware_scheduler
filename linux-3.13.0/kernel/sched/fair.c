@@ -40,6 +40,9 @@
 #include "../../include/linux/list.h"
 #include "../../include/linux/types.h"
 #include "../../include/linux/printk.h"
+#include "../../include/linux/spinlock.h"
+#include "../../include/linux/typecheck.h"
+#include "../../include/linux/spinlock_api_up.h"
 
 int have_not_printed =0;
 /*
@@ -4592,7 +4595,8 @@ static void bump_up_slaves2(struct task_struct *p, 	struct cfs_rq *cfs_rq){
 		struct task_struct *slave_ts;
 		struct sched_entity *se;
 		struct cfs_rq *local_crq;
-		//struct rq *rqCur;
+		unsigned long flags;
+		struct rq *rqCur;
 
 		list_for_each_entry(i, &(p->slave_pids_list->list), list){
 			slave_ts = find_task_by_vpid(i->slave_pid);
@@ -4600,11 +4604,19 @@ static void bump_up_slaves2(struct task_struct *p, 	struct cfs_rq *cfs_rq){
 //			printk(KERN_ALERT "got slave_ts  \n");
 			local_crq = task_cfs_rq(slave_ts);
 //			printk(KERN_ALERT "got local_crq \n");
-			//rqCur = rq_of(local_crq);
+			rqCur = rq_of(local_crq);
 //			printk(KERN_ALERT "got rqcur \n");
+			if (have_not_printed%100==0){
+				printk_deferred("master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d \n", p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq == cfs_rq );
+			}
+			have_not_printed++;
 
-            se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
+			raw_spin_lock_irqsave(&rqCur->lock, flags);
+			update_min_vruntime(local_crq);
+			se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
             local_crq->next = se; //are there fields of se that need updating? does this need lock
+
+			raw_spin_unlock_irqrestore(&rqCur->lock, flags);
 
 			if (have_not_printed%100==0){
 				printk_deferred("master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d \n", p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq == cfs_rq );
