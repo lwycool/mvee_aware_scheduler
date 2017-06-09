@@ -4603,11 +4603,9 @@ static void bump_up_slaves2(struct task_struct *p, 	struct cfs_rq *cfs_rq){
 			//rqCur = rq_of(local_crq);
 //			printk(KERN_ALERT "got rqcur \n");
 
-			if (local_crq != cfs_rq && local_crq->curr != se) { //slave and master not on same cpu
-				se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
-				local_crq->next = se; //are there fields of se that need updating? does this need lock
+            se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
+            local_crq->next = se; //are there fields of se that need updating? does this need lock
 
-			}
 			if (have_not_printed%100==0){
 				printk_deferred("master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d, slave is running?: %d \n", p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq != cfs_rq , local_crq->curr != se);
 			}
