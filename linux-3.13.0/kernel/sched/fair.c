@@ -38,13 +38,13 @@
 #include "sched.h"
 #include "../../include/linux/sched.h"
 #include "../../include/linux/list.h"
-#include "../../include/linux/types.h"
+//#include "../../include/linux/types.h"
 #include "../../include/linux/printk.h"
 #include "../../include/linux/spinlock.h"
-#include "../../include/linux/typecheck.h"
-#include "../../include/linux/spinlock_api_up.h"
 
-int have_not_printed =0;
+
+static int print_count = 0;
+static int have_not_printed =1;
 /*
  * Targeted preemption latency for CPU-bound tasks:
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
@@ -4600,40 +4600,52 @@ static void bump_up_slaves2(struct task_struct *p, 	struct cfs_rq *cfs_rq){
 
 		list_for_each_entry(i, &(p->slave_pids_list->list), list){
 			slave_ts = find_task_by_vpid(i->slave_pid);
-			se = &slave_ts->se;
-//			printk(KERN_ALERT "got slave_ts  \n");
+			if(!slave_ts) return;
+			se = &slave_ts->se; 
+			if(!se) return;
 			local_crq = task_cfs_rq(slave_ts);
+			//se->cfs_rq; //this appears to be null
+			if (!local_crq){ 	
+				if (print_count < 5) {
+				printk(KERN_ALERT "searchkey task_cfs_rq() is NULL0 \n");
+                        	print_count++;
+				}
+				return;
+			}
+			else{
+				if (print_count < 5) {
+					printk(KERN_ALERT "searchkey local_crq not NULL\n");	
+                        		/*if(!local_crq->next){
+						printk(KERN_ALERT "searchkey crq->next->vruntime %llu \n",local_crq->next->vruntime);		
+					}*/	
+					print_count++;
+				}	
+			}	
 //			printk(KERN_ALERT "got local_crq \n");
-			rqCur = rq_of(local_crq);
+	//		rqCur = local_crq->rq;
 //			printk(KERN_ALERT "got rqcur \n");
-			if (have_not_printed%100==0){
-				printk_deferred("master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d \n", p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq == cfs_rq );
-			}
-			have_not_printed++;
-
-			raw_spin_lock_irqsave(&rqCur->lock, flags);
-			update_min_vruntime(local_crq);
-			se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
-            local_crq->next = se; //are there fields of se that need updating? does this need lock
-
-			raw_spin_unlock_irqrestore(&rqCur->lock, flags);
-
-			if (have_not_printed%100==0){
-				printk_deferred("master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d \n", p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq == cfs_rq );
-			}
-			have_not_printed++;
-
+			//if (have_not_printed){
+				//printk_deferred("&rq->cfsrq == local_crq shouldb be1: %d, master_tgid: %d, slave_pid: %d, se_vruntime: %llu, se_onrq: %du, cfsrq_minvruntime: %llu, slave_cfsrq==master_cfsrq?: %d \n",&rqCur->cfs == local_crq, p->tgid,i->slave_pid,se->vruntime,se->on_rq, local_crq->min_vruntime,local_crq == cfs_rq );
+			//	printk_deferred("i->slave_pid: %d, slave_ts->pid: %d, se_vruntime: %llu,local_crq->min_vruntime: %llu \n",i->slave_pid,slave_ts->pid, se->vruntime, local_crq->min_vruntime);
+		//	have_not_printed=0;
+		//	}
+	//		raw_spin_lock_irqsave(&rqCur->lock, flags);
+//			update_min_vruntime(local_crq);
+//			se->vruntime = local_crq->min_vruntime; //potential write after write. this line might error, could omit
+         	//	local_crq->next = se; //are there fields of se that need updating? does this need lock
+	/*		if (!local_crq){ 	
+				if (print_count < 5) {
+				printk_deferred("task_cfs_rq() is NULL0 \n");
+                        	print_count++;
+				}
+				return;
+			}	*/
+	//		raw_spin_unlock_irqrestore(&rqCur->lock, flags);
 //			printk(KERN_ALERT "vruntime set to 0 \n");
 //			if (!local_crq->nr_running)
 //				return;
-//
-//			set_next_entity(local_crq, se);
-//
-//			if (hrtick_enabled(rqCur))
-//				hrtick_start_fair(rqCur, slave_ts);
-		}
-
-	}
+		}//fi list_for_each_entry
+	}//fi slaves !null 
 }
 
 static struct task_struct *pick_next_task_fair(struct rq *rq)
